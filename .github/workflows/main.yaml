@@ -1,0 +1,25 @@
+name: schedule
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - run: |
+          export NOW=$(date '+%Y-%m-%d-%H-%M-%S')
+          export DAY=$(date '+%Y-%m-%d')
+          export DAY_1d=$(date -d '1 days ago' '+%Y-%m-%d')
+          mkdir -p "data/github/$DAY"
+          curl -sG https://api.github.com/search/users --data-urlencode "sort=joined" --data-urlencode "q=followers:<120" \
+              | python -c 'import json, sys;json.dump(json.load(sys.stdin), sys.stdout, separators=(",", ":"))' > "data/github/$DAY/users_1d.$NOW.json"
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
